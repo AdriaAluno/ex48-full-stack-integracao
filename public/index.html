@@ -1,20 +1,80 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
-<head><meta charset="UTF-8"><title>Tarefas</title></head>
-<body>
-  <h1>Lista de Tarefas</h1>
-  <form id="form">
-    <input id="titulo" placeholder="Nova tarefa" required>
-    <button type="submit">Adicionar</button>
-  </form>
-  <ul id="lista"></ul>
-  <p id="erro" style="color:red"></p>
+	<head>
+		<meta charset="UTF-8" />
+		<title>Tarefas</title>
+	</head>
+	<body>
+		<h1>Lista de Tarefas</h1>
+		<form id="form">
+			<input id="titulo" placeholder="Nova tarefa" required />
+			<button type="submit">Adicionar</button>
+		</form>
+		<ul id="lista"></ul>
+		<p id="erro" style="color: red"></p>
+		<script>
+			const api = '/api/tarefas';
+			const lista = document.querySelector('#lista');
+			const form = document.querySelector('#form');
+			const input = document.querySelector('#titulo');
+			const p = document.querySelector('#erro');
 
-  <script>
-    const api = 'http://localhost:3000/api/tarefas';
-    // TODO: ao carregar a página, busca as tarefas com fetch e exibe na lista
-    // TODO: ao submeter o formulário, envia POST com { titulo } e atualiza a lista
-    // TODO: erros de rede/API devem ser exibidos no elemento #erro
-  </script>
-</body>
+
+			async function pegarDados() {
+				const resposta = await fetch(api);
+				if (!resposta.ok) {
+					throw new Error('Erro ao buscar tarefas');
+				}
+				return await resposta.json();
+			}
+			
+			async function enviarDados(titulo) {
+				const resposta = await fetch(api, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ titulo: titulo }),
+				});
+				if (!resposta.ok) {
+					const erro = await resposta.json();
+					throw new Error(
+						erro.mensagem || 'Erro ao adicionar tarefa',
+					);
+				}
+				return await resposta.json();
+			}
+
+
+			function criarLista(data) {
+				const fragmento = document.createDocumentFragment();
+				for (const element of data) {
+					const li = document.createElement('li');
+					li.innerText = element.titulo;
+					fragmento.append(li);
+				}
+				return fragmento;
+			}
+			async function atualizarLista() {
+				try {
+					p.innerText = '';
+					const dados = await pegarDados();
+					lista.innerHTML = '';
+					lista.append(criarLista(dados));
+				} catch (erro) {
+					p.innerText = erro.message;
+				}
+			}
+			form.addEventListener('submit', async (event) => {
+				event.preventDefault();
+				try {
+					p.innerText = '';
+					await enviarDados(input.value);
+					input.value = '';
+					await atualizarLista();
+				} catch (erro) {
+					p.innerText = erro.message;
+				}
+			});
+			atualizarLista();
+		</script>
+	</body>
 </html>
